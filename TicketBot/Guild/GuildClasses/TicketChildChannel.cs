@@ -58,7 +58,7 @@ namespace TicketBot.Guild.GuildClasses
 
         #region Functions
 
-        public SocketTextChannel GetOrCreateGuildChannel(DiscordSocketClient client, Ticket ticket)
+        public SocketTextChannel GetOrCreateGuildChannel(DiscordSocketClient client, Ticket ticket, SocketGuildUser user)
         {
             var guild = client.GetGuild(ticket.ParentGuildId);
             if (guild == null)
@@ -84,12 +84,32 @@ namespace TicketBot.Guild.GuildClasses
             creation.Wait();
             ChannelId = creation.Result.Id;
 
-            return guild.GetTextChannel(ChannelId);
+            var ForbidPerms = new OverwritePermissions(PermValue.Deny, PermValue.Deny, PermValue.Deny, PermValue.Deny, PermValue.Deny);
+            var AllowPerms = new OverwritePermissions(PermValue.Deny, PermValue.Deny, PermValue.Deny, PermValue.Allow, PermValue.Allow);
+            creation.Result.AddPermissionOverwriteAsync(guild.EveryoneRole, ForbidPerms);
+            creation.Result.AddPermissionOverwriteAsync(guild.GetRole(586269577810542593), AllowPerms);// RESTRICTED ADMINS
+            creation.Result.AddPermissionOverwriteAsync(guild.GetRole(586270008796119060), AllowPerms);// RESTRICTED ADMINS
+            creation.Result.AddPermissionOverwriteAsync(user, AllowPerms); // ADING THE USER
+
+            return client.GetGuild(ticket.ParentGuildId).GetTextChannel(ChannelId);
+        }
+
+        public SocketTextChannel GetChannel(DiscordSocketClient client, Ticket ticket)
+        {
+            var guild = client.GetGuild(ticket.ParentGuildId);
+            if (guild == null)
+                return null;
+
+            var channel = guild.GetTextChannel(ChannelId);
+            if (channel != null)
+                return channel;
+
+            return null;
         }
 
         public void Delete(DiscordSocketClient client, Ticket ticket)
         {
-            var channel = GetOrCreateGuildChannel(client, ticket);
+            var channel = GetChannel(client, ticket);
             if (channel == null)
                 return;
 

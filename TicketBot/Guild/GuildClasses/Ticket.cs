@@ -11,14 +11,14 @@ namespace TicketBot.Guild.GuildClasses
     [Serializable]
     public class Ticket
     {
-        public Ticket(ulong id, ulong guild, string name, ulong sourceChannelId)
+        public Ticket(ulong id, ulong guild, string name)
         {
             Id = id;
             ParentGuildId = guild;
             Name = name;
-            SourceChannelId = sourceChannelId;
             CategoryId = 0;
             TicketsCreatedNumber = 0;
+            ActiveChildChannels = new Dictionary<ulong, TicketChildChannel>();
         }
 
         public ulong Id
@@ -34,12 +34,6 @@ namespace TicketBot.Guild.GuildClasses
         }
 
         public string Name
-        {
-            get;
-            set;
-        }
-
-        public ulong SourceChannelId
         {
             get;
             set;
@@ -65,12 +59,13 @@ namespace TicketBot.Guild.GuildClasses
 
         #region Child Functions
 
-        public TicketChildChannel CreateNewChild(ulong userId)
+        public TicketChildChannel CreateNewChild(DiscordSocketClient client, SocketGuildUser user)
         {
             TicketsCreatedNumber++;
             var ChildId = PopId();
-            TicketChildChannel child = new TicketChildChannel(ChildId, Id, userId, TicketsCreatedNumber);
+            TicketChildChannel child = new TicketChildChannel(ChildId, Id, user.Id, TicketsCreatedNumber);
             ActiveChildChannels.Add(ChildId, child);
+            child.GetOrCreateGuildChannel(client, this, user);
             return child;
         }
 
@@ -121,7 +116,7 @@ namespace TicketBot.Guild.GuildClasses
             if (category != null)
                 return category;
 
-            var creation = guild.CreateCategoryChannelAsync(Name);
+            var creation = guild.CreateCategoryChannelAsync(Name, (param => { param.Position = guild.CategoryChannels.Count; }));
             creation.Wait();
             CategoryId = creation.Result.Id;
 

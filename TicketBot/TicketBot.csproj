@@ -11,4 +11,13 @@
     <PackageReference Include="MySql.Data" Version="8.0.16" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="DiscordChatExporter.Core.Models">
+      <HintPath>bin\Debug\netcoreapp3.0\DiscordChatExporter.Core.Models.dll</HintPath>
+    </Reference>
+    <Reference Include="DiscordChatExporter.Core.Services">
+      <HintPath>bin\Debug\netcoreapp3.0\DiscordChatExporter.Core.Services.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

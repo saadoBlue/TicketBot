@@ -328,7 +328,8 @@ namespace TicketBot.Guild.GuildClasses
             if (channel == null)
                 return;
 
-            //TranscriptCode
+            //Transcript Code using https://github.com/Tyrrrz/DiscordChatExporter Libs
+
 
             SendTranscriptMessage(client, channel);
             SendClosedMessage(client, channel);

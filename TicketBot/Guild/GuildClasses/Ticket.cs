@@ -63,7 +63,7 @@ namespace TicketBot.Guild.GuildClasses
         {
             TicketsCreatedNumber++;
             var ChildId = PopId();
-            TicketChildChannel child = new TicketChildChannel(ChildId, Id, user.Id, TicketsCreatedNumber);
+            TicketChildChannel child = new TicketChildChannel(ChildId, Id, ParentGuildId, user.Id, TicketsCreatedNumber);
             ActiveChildChannels.Add(ChildId, child);
             child.GetOrCreateGuildChannel(client, this, user);
             return child;

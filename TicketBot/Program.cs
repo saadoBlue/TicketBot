@@ -23,7 +23,7 @@ namespace TicketBot
         #region Propreties
         private static DiscordSocketClient client;
         private const string Token = "NTg2MzA1MTMyODY2NTY4MjMx.XPmGHQ.lFWVSCpZjT7x2HFDb8bZT5rXHJ8";
-        private static GuildManager guildManager;
+        public static GuildManager guildManager;
         #endregion
 
         #region Functions

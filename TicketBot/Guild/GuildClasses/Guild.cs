@@ -1,16 +1,22 @@
 using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using TicketBot.Core.Extensions;
+using TicketBot.Guild;
+using TicketBot.Guild.GuildClasses;
 
 namespace TicketBot.Guild.GuildClasses
 {
-    [Serializable]
     public class GuildInfo
     {
-        public GuildInfo(ulong id)
+        public GuildInfo(ulong id, string name)
         {
             Id = id;
+            Name = Name;
+            IconUrl = @"https://cdn.discordapp.com/avatars/557628352828014614/04cdd55608f6f9942c9ab3bbcab3932c.png?size=512";
+            Lang = LangEnum.English;
             SetupMessages = new Dictionary<ulong, SetupMessage>();
         }
 
@@ -19,7 +25,23 @@ namespace TicketBot.Guild.GuildClasses
             get;
             set;
         }
+        public string Name
+        {
+            get;
+            set;
+        }
 
+        public LangEnum Lang
+        {
+            get;
+            set;
+        }
+
+        public string IconUrl
+        {
+            get;
+            set;
+        }
         public Dictionary<ulong, Ticket> Tickets
         {
             get;
@@ -35,7 +57,7 @@ namespace TicketBot.Guild.GuildClasses
         #region Ticket Functions
         public SetupMessage CreateSetupMessage(ulong MessageId, ulong TicketId, ulong ChannelId)
         {
-            if(SetupMessages.ContainsKey(MessageId))
+            if (SetupMessages.ContainsKey(MessageId))
             {
                 SetupMessage m_message;
                 SetupMessages.TryGetValue(MessageId, out m_message);
@@ -101,4 +123,43 @@ namespace TicketBot.Guild.GuildClasses
 
         #endregion
     }
+
+    public class GuildDatabase
+    {
+        public ulong Id
+        {
+            get;
+            set;
+        }
+        public string Name
+        {
+            get;
+            set;
+        }
+
+        public LangEnum Lang
+        {
+            get;
+            set;
+        }
+
+        public string IconUrl
+        {
+            get;
+            set;
+        }
+
+        public byte[] TicketsBin
+        {
+            get;
+            set;
+        }
+
+        public byte[] SetupMessagesBin
+        {
+            get;
+            set;
+        }
+    }
 }
+

@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using Discord;
 using Discord.Rest;
 using Discord.WebSocket;
+using TicketBot.Core.Extensions;
 
 namespace TicketBot.Guild.GuildClasses
 {
@@ -13,16 +15,16 @@ namespace TicketBot.Guild.GuildClasses
         public TicketChildChannel(ulong id, ulong parentTicket, ulong parentGuild, ulong userId, ulong ticketNumber)
         {
             Id = id;
-            ChannelId = 0;
-            MainMessageId = 0;
-            LockMessageId = 0;
+            ChannelId = 666;
+            MainMessageId = 666;
+            LockMessageId = 666;
             ParentTicketId = parentTicket;
             ParentGuildId = parentGuild;
             UserId= userId;
             TicketNumber = ticketNumber;
         }
 
-        public string Name(string ticketName) => $"ticket-{ticketName.ToLower()}#{TicketNumber}";
+        public string Name(string ticketName) => $"{ticketName.ToLower()}-{TicketNumber.ToString("D4")}";
 
         public ulong Id
         {
@@ -65,15 +67,15 @@ namespace TicketBot.Guild.GuildClasses
             private set;
         }
 
-        private ulong MainMessageId
+        public ulong MainMessageId
         {
             get;
-            set;
+            private set;
         }
-        private ulong LockMessageId
+        public ulong LockMessageId
         {
             get;
-            set;
+            private set;
         }
 
         public Ticket Ticket => Program.guildManager.GetTicket(ParentGuildId, ParentTicketId);
@@ -82,9 +84,13 @@ namespace TicketBot.Guild.GuildClasses
         Emoji UnlockEmoji => new Emoji("🔓");
         Emoji TranscriptEmoji => new Emoji("📑");
         Emoji DeleteEmoji => new Emoji("⛔");
+        OverwritePermissions SpectatePerms => new OverwritePermissions(PermValue.Deny, PermValue.Deny, PermValue.Deny, PermValue.Allow, PermValue.Deny);
+        OverwritePermissions AllowPerms => new OverwritePermissions(PermValue.Deny, PermValue.Deny, PermValue.Deny, PermValue.Allow, PermValue.Allow);
+        OverwritePermissions ForbidPerms => new OverwritePermissions(PermValue.Deny, PermValue.Deny, PermValue.Deny, PermValue.Deny, PermValue.Deny);
 
         #region Functions
 
+        #region Channel
         public SocketTextChannel GetOrCreateGuildChannel(DiscordSocketClient client, Ticket ticket, SocketGuildUser user)
         {
             var guild = client.GetGuild(ticket.ParentGuildId);
@@ -111,21 +117,20 @@ namespace TicketBot.Guild.GuildClasses
             creation.Wait();
             ChannelId = creation.Result.Id;
 
-            var ForbidPerms = new OverwritePermissions(PermValue.Deny, PermValue.Deny, PermValue.Deny, PermValue.Deny, PermValue.Deny);
-            var AllowPerms = new OverwritePermissions(PermValue.Deny, PermValue.Deny, PermValue.Deny, PermValue.Allow, PermValue.Allow);
             creation.Result.AddPermissionOverwriteAsync(guild.EveryoneRole, ForbidPerms);
-            creation.Result.AddPermissionOverwriteAsync(guild.GetRole(586269577810542593), AllowPerms);// RESTRICTED ADMINS
-            creation.Result.AddPermissionOverwriteAsync(guild.GetRole(586270008796119060), AllowPerms);// RESTRICTED ADMINS
-            creation.Result.AddPermissionOverwriteAsync(user, AllowPerms); // ADING THE USER
+            foreach(var PermittedId in Guild.PermittedRoles)
+            {
+                creation.Result.AddPermissionOverwriteAsync(guild.GetRole(PermittedId), AllowPerms);// RESTRICTED ADMINS
+            }
 
             SendMainMessage(client, creation.Result);
 
             return client.GetGuild(ticket.ParentGuildId).GetTextChannel(ChannelId);
         }
 
-        public SocketTextChannel GetChannel(DiscordSocketClient client, Ticket ticket)
+        public SocketTextChannel GetChannel(DiscordSocketClient client)
         {
-            var guild = client.GetGuild(ticket.ParentGuildId);
+            var guild = client.GetGuild(ParentGuildId);
             if (guild == null)
                 return null;
 
@@ -135,6 +140,10 @@ namespace TicketBot.Guild.GuildClasses
 
             return null;
         }
+
+        #endregion
+
+        #region Main Message
 
         public void SendMainMessage(DiscordSocketClient client, RestTextChannel channel)
         {
@@ -167,25 +176,10 @@ namespace TicketBot.Guild.GuildClasses
             MainMessageId = message.Result.Id;
             return message.Result;
         }
-
-        public void Delete(DiscordSocketClient client, Ticket ticket)
-        {
-            var channel = GetChannel(client, ticket);
-            if (channel == null)
-                return;
-
-            channel.DeleteAsync();
-        }
-
-        public void ChangeState(TicketState state)
-        {
-            State = state;
-        }
-
         public Embed GetLockEmbed()
         {
             EmbedBuilder builder;
-            switch(Guild.Lang)
+            switch (Guild.Lang)
             {
                 case LangEnum.Frensh:
                     builder = new EmbedBuilder()
@@ -211,6 +205,180 @@ namespace TicketBot.Guild.GuildClasses
                     return builder.Build();
             }
         }
+        #endregion
+
+        #region LockMessage
+
+        public RestUserMessage GetOrCreateLockMessage(DiscordSocketClient client, SocketGuildUser m_user)
+        {
+            var guild = client.GetGuild(ParentGuildId);
+            if (guild == null)
+                return null;
+
+            var channel = guild.GetTextChannel(ChannelId);
+            if (channel == null)
+                return null;
+
+            var Rmessage = channel.GetMessageAsync(LockMessageId);
+            Rmessage.Wait();
+            if ((Rmessage.Result as RestUserMessage) != null) return Rmessage.Result as RestUserMessage;
+
+            if (m_user != null) SendLockedMessage(client, m_user, channel);
+
+            var message = channel.SendMessageAsync("", false, GetLockMessageEmbed());
+            message.Wait();
+
+            message.Result.AddReactionAsync(UnlockEmoji);
+            message.Result.AddReactionAsync(TranscriptEmoji);
+            message.Result.AddReactionAsync(DeleteEmoji);
+
+            var user = guild.GetUser(UserId);
+            channel.AddPermissionOverwriteAsync(user, SpectatePerms);
+
+            
+            
+            LockMessageId = message.Result.Id;
+            return message.Result;
+        }
+
+        public Embed GetLockMessageEmbed()
+        {
+            EmbedBuilder builder;
+            switch (Guild.Lang)
+            {
+                case LangEnum.Frensh:
+                    builder = new EmbedBuilder()
+                    {
+                        Author = new EmbedAuthorBuilder() { Name = $"Ticket Tool ~ Mod tools", IconUrl = @"https://cdn.discordapp.com/avatars/557628352828014614/04cdd55608f6f9942c9ab3bbcab3932c.png?size=512", Url = @"https://github.com/Saadbg/TicketBot" },
+                        Description = "🔓 Réouvrir le ticket. \n"
+                              + "📑 Sauvegarder le transcript et supprimer le ticket. \n"
+                              + "⛔ Supprimer le ticket.",
+                        Timestamp = DateTime.Now,
+                        Footer = new EmbedFooterBuilder() { Text = $"{Guild.Name} Support", IconUrl = Guild.IconUrl }
+                    };
+                    return builder.Build();
+                default:
+                    builder = new EmbedBuilder()
+                    {
+                        Author = new EmbedAuthorBuilder() { Name = $"Ticket Tool ~ {Ticket.Name}", IconUrl = @"https://cdn.discordapp.com/avatars/557628352828014614/04cdd55608f6f9942c9ab3bbcab3932c.png?size=512", Url = @"https://github.com/Saadbg/TicketBot" },
+                        Description = "🔓 Unlock the ticket. \n"
+                              + "📑 Save the transcript and delete the ticket. \n"
+                              + "⛔ Delete the ticket.",
+                        Timestamp = DateTime.Now,
+                        Footer = new EmbedFooterBuilder() { Text = $"{Guild.Name} Support", IconUrl = Guild.IconUrl }
+                    };
+                    return builder.Build();
+            }
+        }
+
+        #endregion
+
+        #region SimpleMessages
+
+        public void SendLockedMessage(DiscordSocketClient client, SocketGuildUser user, SocketTextChannel channel)
+        {
+            var builder = new EmbedBuilder()
+            {
+                Color = Color.LightOrange,
+                Description = Guild.Lang == LangEnum.Frensh ? $"Ticket verouillé par {user.Mention}" : $"Ticket locked by {user.Mention}"
+            };
+            channel.SendMessageAsync("", false, builder.Build());
+        }
+        public void SendTranscriptMessage(DiscordSocketClient client, SocketTextChannel channel)
+        {
+            var builder = new EmbedBuilder()
+            {
+                Color = Color.Gold,
+                Description = Guild.Lang == LangEnum.Frensh ? $"Transcript enregistré." : $"Transcript saved."
+            };
+            channel.SendMessageAsync("", false, builder.Build());
+        }
+
+        public void SendClosedMessage(DiscordSocketClient client, SocketTextChannel channel)
+        {
+            var builder = new EmbedBuilder()
+            {
+                Color = Color.DarkRed,
+                Description = Guild.Lang == LangEnum.Frensh ? $"Le ticket va se fermer dans 5 secondes..." : $"The ticket will be deleted in 5 seconds..."
+            };
+            channel.SendMessageAsync("", false, builder.Build());
+        }
+
+        #endregion
+
+        #region Modifications
+
+        public void Delete(DiscordSocketClient client, bool Intern = true)
+        {
+            if (Ticket.ActiveChildChannels.ContainsKey(Id) && Intern) Ticket.ActiveChildChannels.Remove(Id);
+
+            var channel = GetChannel(client);
+            if (channel == null)
+                return;
+
+            SendClosedMessage(client, channel);
+            Task.Factory.StartNewDelayed(7000, () => ScheduledDelete(channel));
+        }
+
+        public void DeleteWithTranscript(DiscordSocketClient client)
+        {
+            if (Ticket.ActiveChildChannels.ContainsKey(Id)) Ticket.ActiveChildChannels.Remove(Id);
+
+            var channel = GetChannel(client);
+            if (channel == null)
+                return;
+
+            //TranscriptCode
+
+            SendTranscriptMessage(client, channel);
+            SendClosedMessage(client, channel);
+            Task.Factory.StartNewDelayed(7000, () => ScheduledDelete(channel));
+        }
+
+        private void ScheduledDelete(SocketTextChannel channel) => channel.DeleteAsync();
+
+        public void ChangeState(TicketState state, DiscordSocketClient client, SocketGuildUser user)
+        {
+            State = state;
+            switch (state)
+            {
+                case TicketState.Locked:
+                    Lock(client, user);
+                    break;
+                case TicketState.Open:
+                    ReOpen(client);
+                    break;
+                default:
+                    Delete(client);
+                    break;
+            }
+        }
+
+        public void ReOpen(DiscordSocketClient client)
+        {
+            GetOrCreateLockMessage(client, null).DeleteAsync();
+            LockMessageId = 666;
+            var message = GetOrCreateMainMessage(client);
+
+            var guild = client.GetGuild(ParentGuildId);
+            if (guild == null)
+                return;
+
+            message.RemoveAllReactionsAsync();
+            message.AddReactionAsync(UnlockEmoji);
+            var user = guild.GetUser(UserId);
+            (message.Channel as SocketTextChannel).AddPermissionOverwriteAsync(user, AllowPerms);
+        }
+
+        public void Lock(DiscordSocketClient client, SocketGuildUser user)
+        {
+            var message = GetOrCreateMainMessage(client);
+            message.RemoveAllReactionsAsync();
+            message.AddReactionAsync(UnlockEmoji);
+            GetOrCreateLockMessage(client, user);
+        }
+
+        #endregion
 
         #endregion
     }

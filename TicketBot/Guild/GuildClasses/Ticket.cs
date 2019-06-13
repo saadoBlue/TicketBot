@@ -81,11 +81,13 @@ namespace TicketBot.Guild.GuildClasses
         }
         public bool RemoveChild(DiscordSocketClient client, TicketChildChannel Child)
         {
+            Child.Delete(client, false);
+
             var ChildId = Child.Id;
             if (!ActiveChildChannels.ContainsKey(ChildId))
                 return false;
 
-            Child.Delete(client, this);
+            
             ActiveChildChannels.Remove(ChildId);
             return true;
         }
@@ -129,8 +131,8 @@ namespace TicketBot.Guild.GuildClasses
             if (category == null)
                 return;
 
-            ActiveChildChannels?.Values.ToList().ForEach(x => x.Delete(client, this));
-            
+            ActiveChildChannels?.Values.ToList().ForEach(x => x.Delete(client, false));
+            ActiveChildChannels.Clear();
             category.DeleteAsync();
         }
 

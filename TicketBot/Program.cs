@@ -75,7 +75,7 @@ namespace TicketBot
             var User = reaction.User.Value as SocketGuildUser;
             var Channel = channel as SocketGuildChannel;
             if(User != null && Channel != null)
-                guildManager.CreateChannelInstance(Channel.Guild, User, reaction);
+                guildManager.HandleReaction(Channel.Guild, User, reaction);
 
             return Task.CompletedTask;
         }

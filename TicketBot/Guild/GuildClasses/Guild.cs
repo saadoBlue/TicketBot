@@ -14,10 +14,11 @@ namespace TicketBot.Guild.GuildClasses
         public GuildInfo(ulong id, string name)
         {
             Id = id;
-            Name = Name;
+            Name = name;
             IconUrl = @"https://cdn.discordapp.com/avatars/557628352828014614/04cdd55608f6f9942c9ab3bbcab3932c.png?size=512";
             Lang = LangEnum.English;
             SetupMessages = new Dictionary<ulong, SetupMessage>();
+            PermittedRoles = new List<ulong>() { 666 };
         }
 
         public ulong Id
@@ -54,7 +55,14 @@ namespace TicketBot.Guild.GuildClasses
             set;
         }
 
-        #region Ticket Functions
+        public List<ulong> PermittedRoles
+        {
+            get;
+            set;
+        }
+
+        #region Messages Functions
+
         public SetupMessage CreateSetupMessage(ulong MessageId, ulong TicketId, ulong ChannelId)
         {
             if (SetupMessages.ContainsKey(MessageId))
@@ -79,6 +87,21 @@ namespace TicketBot.Guild.GuildClasses
             else return null;
         }
 
+        public SetupMessage GetSetupMessageByTicket(ulong TicketId)
+        {
+            return SetupMessages.Values.FirstOrDefault(x => x.TicketId == TicketId);
+        }
+
+        public TicketChildChannel GetChildByReactionMessageId(ulong messageId)
+        {
+            var ticket = Tickets.SelectMany(x => x.Value.ActiveChildChannels.Values).FirstOrDefault(x => messageId == x.LockMessageId || messageId == x.MainMessageId);
+            return ticket;
+        }
+
+        #endregion
+
+        #region Ticket Functions
+
         public Ticket CreateNewTicket(DiscordSocketClient client, string Name)
         {
             var ticketId = PopId();
@@ -95,19 +118,39 @@ namespace TicketBot.Guild.GuildClasses
             return ticket;
         }
 
-        public bool RemoveTicket(ulong TicketId)
+        public bool RemoveTicket(DiscordSocketClient client, ulong TicketId, bool clear)
         {
             if (!Tickets.ContainsKey(TicketId))
                 return false;
 
-            Tickets.Remove(TicketId);
+            var ticket = GetTicket(TicketId);
+            return RemoveTicket(client, ticket, clear);
+        }
+        public bool RemoveTicket(DiscordSocketClient client, Ticket ticket, bool clear = false)
+        {
+            ticket.Delete(client);
+
+            var setmessage = GetSetupMessage(ticket.Id);
+            if (setmessage != null) SetupMessages.Remove(setmessage.MessageId);
+
+            if (clear) return true;
+
+            if (!Tickets.ContainsKey(ticket.Id))
+                return false;
+
+            Tickets.Remove(ticket.Id);
+
             return true;
         }
-        public bool RemoveTicket(Ticket Ticket)
-        {
-            return RemoveTicket(Ticket.Id);
-        }
 
+        public void Reset(DiscordSocketClient client)
+        {
+            foreach(var tickt in Tickets.Values)
+            {
+                RemoveTicket(client, tickt, true);
+            }
+            Tickets.Clear();
+        }
         public ulong PopId()
         {
             ulong newId = 0;
@@ -144,6 +187,11 @@ namespace TicketBot.Guild.GuildClasses
         }
 
         public string IconUrl
+        {
+            get;
+            set;
+        }
+        public string PermittedRolesCSV
         {
             get;
             set;

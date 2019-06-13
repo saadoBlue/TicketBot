@@ -38,7 +38,7 @@ namespace TicketBot.ORM
 
         public MySqlCommand GetUpdateQuery(GuildDatabase database)
         {
-            var command = new MySqlCommand($"UPDATE guilds SET Name = '{database.Name}', Lang = '{(int)database.Lang}', IconUrl = '{database.IconUrl}', TicketsBin = @tbin, SetupMessagesBin = @smbin where Id = {database.Id};", Connection);
+            var command = new MySqlCommand($"UPDATE guilds SET Name = '{database.Name}', Lang = '{(int)database.Lang}', IconUrl = '{database.IconUrl}', PermittedRolesCSV = '{database.PermittedRolesCSV}', TicketsBin = @tbin, SetupMessagesBin = @smbin where Id = {database.Id};", Connection);
             command.Parameters.Add("@tbin", MySqlDbType.LongBlob).Value = database.TicketsBin;
             command.Parameters.Add("@smbin", MySqlDbType.LongBlob).Value = database.SetupMessagesBin;
             return command;
@@ -46,7 +46,7 @@ namespace TicketBot.ORM
 
         public MySqlCommand GetInsertQuery(GuildDatabase database)
         {
-            var command = new MySqlCommand($"INSERT INTO guilds(Id, Name, Lang, IconUrl, TicketsBin, SetupMessagesBin) VALUES({database.Id},'{database.Name}',{(int)database.Lang},'{database.IconUrl}',@tbin,@smbin);", Connection);
+            var command = new MySqlCommand($"INSERT INTO guilds(Id, Name, Lang, IconUrl, PermittedRolesCSV, TicketsBin, SetupMessagesBin) VALUES({database.Id},'{database.Name}',{(int)database.Lang},'{database.IconUrl}','{database.PermittedRolesCSV}',@tbin,@smbin);", Connection);
             command.Parameters.Add("@tbin", MySqlDbType.LongBlob).Value = database.TicketsBin;
             command.Parameters.Add("@smbin", MySqlDbType.LongBlob).Value = database.SetupMessagesBin;
             return command;

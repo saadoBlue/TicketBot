@@ -95,7 +95,8 @@ namespace TicketBot
                 Lang = database.Lang,
                 IconUrl = database.IconUrl,
                 Tickets = tickets.ToDictionary(x => x.Id),
-                SetupMessages = smessages.ToDictionary(x => x.MessageId)
+                SetupMessages = smessages.ToDictionary(x => x.MessageId),
+                PermittedRoles = FormatterExtensions.FromCSV<ulong>(database.PermittedRolesCSV, ";").ToList()
             };
             return info;
         }
@@ -109,7 +110,8 @@ namespace TicketBot
                 Lang = guild.Lang,
                 IconUrl = guild.IconUrl,
                 TicketsBin = FormatterExtensions.ToBinary(guild.Tickets.Values.ToList()),
-                SetupMessagesBin = FormatterExtensions.ToBinary(guild.SetupMessages.Values.ToList())
+                SetupMessagesBin = FormatterExtensions.ToBinary(guild.SetupMessages.Values.ToList()),
+                PermittedRolesCSV = guild.PermittedRoles.ToCSV(";")
             };
 
             return database;
@@ -146,32 +148,7 @@ namespace TicketBot
 
         #region ChildChannel
 
-        public void CreateChannelInstance(SocketGuild guild, SocketGuildUser user, SocketReaction reaction)
-        {
-            if (user.IsBot) return;
-
-            var Rmessage = (reaction.Channel as SocketTextChannel).GetMessageAsync(reaction.MessageId);
-            Rmessage.Wait();
-
-            var messge = Rmessage.Result;
-            var message = messge as Discord.Rest.RestUserMessage;
-
-            if (message == null) return;
-
-            GuildInfo guildInfo = GetOrCreateGuild(guild);
-
-            var setupMessage = guildInfo.GetSetupMessage(reaction.MessageId);
-            if (setupMessage == null) return;
-
-            var ticket = guildInfo.GetTicket(setupMessage.TicketId);
-            if (ticket == null) return;
-
-            message.RemoveReactionAsync(reaction.Emote, user);
-
-            if (ticket.ActiveChildChannels.Values.Any(x => x.UserId == user.Id)) return;
-
-            ticket.CreateNewChild(DiscordClient, user);
-        }
+        
 
         #endregion
 
@@ -199,6 +176,93 @@ namespace TicketBot
         }
 
         #endregion
+
+        #endregion
+
+        #region Handlers
+
+        public void HandleReaction(SocketGuild guild, SocketGuildUser user, SocketReaction reaction)
+        {
+            if (user.IsBot) return;
+
+            var Rmessage = (reaction.Channel as SocketTextChannel).GetMessageAsync(reaction.MessageId);
+            Rmessage.Wait();
+
+            var messge = Rmessage.Result;
+            var message = messge as Discord.Rest.RestUserMessage;
+
+            if (message == null) return;
+
+            GuildInfo guildInfo = GetOrCreateGuild(guild);
+
+            var setupMessage = guildInfo.GetSetupMessage(reaction.MessageId);
+            if (setupMessage != null)
+            {
+                HandleSetupMessage(guildInfo, setupMessage, reaction, message);
+                return;
+            }
+
+            var child = guildInfo.GetChildByReactionMessageId(reaction.MessageId);
+            if(child != null)
+            {
+                HandleChildReaction(child, reaction, message);
+            }
+        }
+
+        public void HandleSetupMessage(GuildInfo guildInfo, SetupMessage setupMessage, SocketReaction reaction, Discord.Rest.RestUserMessage message)
+        {
+            var user = reaction.User.Value as SocketGuildUser;
+            var ticket = guildInfo.GetTicket(setupMessage.TicketId);
+            if (ticket == null) return;
+
+            message.RemoveReactionAsync(reaction.Emote, user);
+
+            if (ticket.ActiveChildChannels.Values.Any(x => x.UserId == user.Id)) return;
+
+            ticket.CreateNewChild(DiscordClient, user);
+        }
+
+        public void HandleChildReaction(TicketChildChannel child, SocketReaction reaction, Discord.Rest.RestUserMessage message)
+        {
+            var user = reaction.User.Value as SocketGuildUser;
+            if (child.State == TicketState.Locked && reaction.UserId == child.UserId)
+            {
+                if (!user.GuildPermissions.Administrator && !user.Roles.Any(g => child.Guild.PermittedRoles.Contains(g.Id)))
+                {
+                    message.RemoveReactionAsync(reaction.Emote, reaction.User.Value);
+                    return;
+                }
+            }
+
+             if(message.Id == child.MainMessageId)
+            {
+                switch(child.State)
+                {
+                    case TicketState.Open:
+                        child.ChangeState(TicketState.Locked, DiscordClient, user);
+                        break;
+                    case TicketState.Locked:
+                        child.ChangeState(TicketState.Open, DiscordClient, user);
+                        break;
+                }
+            }
+
+            else
+            {
+               switch(reaction.Emote.Name)
+                {
+                    case "⛔":
+                        child.Delete(DiscordClient);
+                        break;
+                    case "📑":
+                        child.DeleteWithTranscript(DiscordClient);
+                        break;
+                    case "🔓":
+                        child.ChangeState(TicketState.Open, DiscordClient, user);
+                        break;
+                }
+            }
+        }
 
         #endregion
     }

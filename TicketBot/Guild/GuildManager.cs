@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using TicketBot.Core.Extensions;
+using TicketBot.Guild;
 using TicketBot.Guild.GuildClasses;
 using TicketBot.ORM;
 
@@ -64,6 +65,24 @@ namespace TicketBot
         #region Functions
 
         #region GuildInfo
+
+        public void LangChangeCommand(SocketGuild guild, LangEnum lang)
+        {
+            var guildInfo = GetOrCreateGuild(guild);
+            guildInfo.Lang = lang;
+        }
+
+        public void NameChangeCommand(SocketGuild guild, string name)
+        {
+            var guildInfo = GetOrCreateGuild(guild);
+            guildInfo.Name = name;
+        }
+
+        public void IconChangeCommand(SocketGuild guild, string icon)
+        {
+            var guildInfo = GetOrCreateGuild(guild);
+            guildInfo.IconUrl = icon;
+        }
 
         public void AddModerationCommand(SocketGuild guild, ulong[] Roles)
         {

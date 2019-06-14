@@ -124,7 +124,7 @@ namespace TicketBot.Guild.GuildClasses
                 creation.Result.AddPermissionOverwriteAsync(guild.GetRole(PermittedId), AllowPerms);// RESTRICTED ADMINS
             }
 
-            SendMainMessage(client, creation.Result);
+            SendMainMessage(client, creation.Result, user);
 
             return client.GetGuild(ticket.ParentGuildId).GetTextChannel(ChannelId);
         }
@@ -146,9 +146,9 @@ namespace TicketBot.Guild.GuildClasses
 
         #region Main Message
 
-        public void SendMainMessage(DiscordSocketClient client, RestTextChannel channel)
+        public void SendMainMessage(DiscordSocketClient client, RestTextChannel channel, SocketUser user)
         {
-            var message = channel.SendMessageAsync("", false, GetLockEmbed());
+            var message = channel.SendMessageAsync("", false, GetLockEmbed(user.Mention));
             message.Wait();
 
             message.Result.AddReactionAsync(LockEmoji);
@@ -169,7 +169,8 @@ namespace TicketBot.Guild.GuildClasses
             Rmessage.Wait();
             if ((Rmessage.Result as RestUserMessage) != null) return Rmessage.Result as RestUserMessage;
 
-            var message = channel.SendMessageAsync("", false, GetLockEmbed());
+            var user = guild.GetUser(UserId);
+            var message = channel.SendMessageAsync("", false, GetLockEmbed(user.Mention));
             message.Wait();
 
             message.Result.AddReactionAsync(LockEmoji);
@@ -177,7 +178,7 @@ namespace TicketBot.Guild.GuildClasses
             MainMessageId = message.Result.Id;
             return message.Result;
         }
-        public Embed GetLockEmbed()
+        public Embed GetLockEmbed(string Mention)
         {
             EmbedBuilder builder;
             switch (Guild.Lang)
@@ -186,7 +187,7 @@ namespace TicketBot.Guild.GuildClasses
                     builder = new EmbedBuilder()
                     {
                         Author = new EmbedAuthorBuilder() { Name = $"Ticket Tool ~ {Ticket.Name}", IconUrl = @"https://cdn.discordapp.com/avatars/557628352828014614/04cdd55608f6f9942c9ab3bbcab3932c.png?size=512", Url = @"https://github.com/Saadbg/TicketBot" },
-                        Description = "Merci d'avoir créé un ticket. \n"
+                        Description = $"Merci d'avoir créé un ticket {Mention}. \n"
                               + "Notre staff va vous répondre au plus bref délai. \n"
                               + "Pour fermer ce ticket, réagissez avec cette emoji: 🔒",
                         Timestamp = DateTime.Now,
@@ -197,7 +198,7 @@ namespace TicketBot.Guild.GuildClasses
                     builder = new EmbedBuilder()
                     {
                         Author = new EmbedAuthorBuilder() { Name = $"Ticket Tool ~ {Ticket.Name}", IconUrl = @"https://cdn.discordapp.com/avatars/557628352828014614/04cdd55608f6f9942c9ab3bbcab3932c.png?size=512", Url = @"https://github.com/Saadbg/TicketBot" },
-                        Description = "Thanks for creating a ticket. \n"
+                        Description = $"Thanks for creating a ticket {Mention}. \n"
                               + "Our staff will reply you as soon as possible. \n"
                               + "To close the ticket, react with this emoji: 🔒",
                         Timestamp = DateTime.Now,

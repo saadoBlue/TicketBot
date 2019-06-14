@@ -72,11 +72,38 @@ namespace TicketBot
             if(guild == null)
                 return Task.CompletedTask;
 
-            if (message.Content.StartsWith("$setup"))
-            {
-                if ((message.Author as SocketGuildUser).Roles.All(x => !x.Permissions.Administrator) && message.Author.Id != guild.Owner.Id)
-                    return Task.CompletedTask;
+            if ((message.Author as SocketGuildUser).Roles.All(x => !x.Permissions.Administrator) && message.Author.Id != guild.Owner.Id)
+                return Task.CompletedTask;
 
+            if (message.Content.StartsWith("$help"))
+            {
+                var helpEmbedBuilder = new EmbedBuilder()
+                {
+                    Author = new EmbedAuthorBuilder() { Name = $"Ticket Tool ~ Commands", IconUrl = @"https://cdn.discordapp.com/avatars/557628352828014614/04cdd55608f6f9942c9ab3bbcab3932c.png?size=512", Url = @"https://github.com/Saadbg/TicketBot" },
+                    Timestamp = DateTime.Now,
+                    Footer = new EmbedFooterBuilder() { Text = "Commands tab" },
+                    Description =
+                      "**Prefix** : **$** \n \n"
+                    + "**setup** : Creates a ticket. \n"
+                    + "     ~exemple: \"$setup ***TicketName***  #channel ***A message displayed***  \" \n \n"
+                    + "**roles** : manages mentionned roles permissions \n"
+                    + "    -**add** : adds roles to tickets staff. \n"
+                    + "    -**remove** : removes roles from tickets staff. \n"
+                    + "     ~exemple: \"$roles ***add/remove*** ***@Role1  @Role2  @Role3*** \" \n \n"
+                    + "**lang** : manages the display language \n"
+                    + "    -**fr/french** : changes the language to French. \n"
+                    + "    -**en/english** : changes the language to English. \n"
+                    + "     ~exemple: \"$lang ***en/fr*** \" \n \n"
+                    + "**name** : Changes the ticket support team name \n"
+                    + "     ~exemple: \"$name ***New name*** \" \n \n"
+                    + "**icon** : Changes the ticket support team icon \n"
+                    + "     ~exemple: \"$icon ***http://newIconUrl.com/Icon.jpg*** \" \n \n"
+                };
+                channel.SendMessageAsync("", false, helpEmbedBuilder.Build());
+            }
+
+            else if (message.Content.StartsWith("$setup "))
+            {
                 var CommandArguments = message.Content.Split(' ');
 
                 if (CommandArguments.Length < 3) return Task.CompletedTask;
@@ -85,30 +112,53 @@ namespace TicketBot
                 var ticketName = CommandArguments[1];
                 var Message = message.Content.Replace($"$setup {ticketName} {CommandArguments[2]} ", "");
 
-                switch(commandIdentifier)
-                {
-                    case "$setup":
-                        if (message.MentionedChannels.Count != 1) return Task.CompletedTask;
-                        var mentionnedChannel = message.MentionedChannels.FirstOrDefault();
-                        guildManager.SetupMessage(ticketName, Message, guild, mentionnedChannel as SocketTextChannel);
-                        break;
-                }
+                if (message.MentionedChannels.Count != 1)
+                    return Task.CompletedTask;
+
+                var mentionnedChannel = message.MentionedChannels.FirstOrDefault();
+                guildManager.SetupMessage(ticketName, Message, guild, mentionnedChannel as SocketTextChannel);
 
                 channel.SendMessageAsync($"Ticket {ticketName} Created.");
             }
 
-            else if(message.Content.StartsWith("$roles -add"))
+            else if(message.Content.ToLower().StartsWith("$roles add "))
             {
                 var mentionnedRoles = message.MentionedRoles;
                 if (mentionnedRoles != null && mentionnedRoles.Any()) guildManager.AddModerationCommand(guild, mentionnedRoles.Where(x => !x.IsEveryone).Select(x => x.Id).ToArray());
                 channel.SendMessageAsync($"Roles Added.");
             }
 
-            else if (message.Content.StartsWith("$roles -remove"))
+            else if (message.Content.ToLower().StartsWith("$roles remove "))
             {
                 var mentionnedRoles = message.MentionedRoles;
                 if (mentionnedRoles != null && mentionnedRoles.Any()) guildManager.RemoveModerationCommand(guild, mentionnedRoles.Where(x => !x.IsEveryone).Select(x => x.Id).ToArray());
                 channel.SendMessageAsync($"Roles Removed.");
+            }
+
+            else if (message.Content.ToLower().StartsWith("$lang fr") || message.Content.ToLower().StartsWith("$lang french"))
+            {
+                guildManager.LangChangeCommand(guild, Guild.LangEnum.Frensh);
+                channel.SendMessageAsync($"Langage changé en Français.");
+            }
+
+            else if (message.Content.ToLower().StartsWith("$lang en") || message.Content.ToLower().StartsWith("$lang english"))
+            {
+                guildManager.LangChangeCommand(guild, Guild.LangEnum.English);
+                channel.SendMessageAsync($"Language changed to English.");
+            }
+
+            else if(message.Content.StartsWith("$icon "))
+            {
+                string IconUrl = message.Content.Replace("$icon ", "");
+                guildManager.IconChangeCommand(guild, IconUrl);
+                channel.SendMessageAsync($"Icon changed to {IconUrl}.");
+            }
+
+            else if (message.Content.StartsWith("$name "))
+            {
+                string name = message.Content.Replace("$name ", "");
+                guildManager.NameChangeCommand(guild, name);
+                channel.SendMessageAsync($"Name changed to {name}.");
             }
 
             return Task.CompletedTask;

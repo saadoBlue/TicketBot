@@ -12,12 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="DiscordChatExporter.Core.Models">
-      <HintPath>bin\Debug\netcoreapp3.0\DiscordChatExporter.Core.Models.dll</HintPath>
-    </Reference>
-    <Reference Include="DiscordChatExporter.Core.Services">
-      <HintPath>bin\Debug\netcoreapp3.0\DiscordChatExporter.Core.Services.dll</HintPath>
-    </Reference>
+    <Folder Include="Properties\" />
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
@@ -308,6 +309,11 @@ namespace TicketBot.Guild.GuildClasses
 
         #region Modifications
 
+        public void ForceDelete(DiscordSocketClient client)
+        {
+            if (Ticket.ActiveChildChannels.ContainsKey(Id)) Ticket.ActiveChildChannels.Remove(Id);
+        }
+
         public void Delete(DiscordSocketClient client, bool Intern = true)
         {
             if (Ticket.ActiveChildChannels.ContainsKey(Id) && Intern) Ticket.ActiveChildChannels.Remove(Id);
@@ -328,12 +334,12 @@ namespace TicketBot.Guild.GuildClasses
             if (channel == null)
                 return;
 
-            //Transcript Code using https://github.com/Tyrrrz/DiscordChatExporter Libs
-
+            //Transcript Code to do
 
             SendTranscriptMessage(client, channel);
             SendClosedMessage(client, channel);
-            Task.Factory.StartNewDelayed(7000, () => ScheduledDelete(channel));
+
+            Task.Factory.StartNewDelayed(23000, () => ScheduledDelete(channel));
         }
 
         private void ScheduledDelete(SocketTextChannel channel) => channel.DeleteAsync();

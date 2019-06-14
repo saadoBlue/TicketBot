@@ -64,6 +64,24 @@ namespace TicketBot
         #region Functions
 
         #region GuildInfo
+
+        public void AddModerationCommand(SocketGuild guild, ulong[] Roles)
+        {
+            var guildInfo = GetOrCreateGuild(guild);
+            foreach(var role in Roles)
+            {
+                if (!guildInfo.PermittedRoles.Contains(role)) guildInfo.PermittedRoles.Add(role);
+            }
+        }
+
+        public void RemoveModerationCommand(SocketGuild guild, ulong[] Roles)
+        {
+            var guildInfo = GetOrCreateGuild(guild);
+            foreach (var role in Roles)
+            {
+                if (guildInfo.PermittedRoles.Contains(role)) guildInfo.PermittedRoles.Remove(role);
+            }
+        }
         public GuildInfo GetOrCreateGuild(SocketGuild guild)
         {
             GuildInfo guildInfo;
@@ -73,6 +91,7 @@ namespace TicketBot
                 return guildInfo;
             }
 
+            if (!Directory.Exists($"./Transcripts/{guild.Id}")) Directory.CreateDirectory($"./Transcripts/{guild.Id}");
             guildInfo = new GuildInfo(guild.Id, guild.Name);
             guilds.Add(guild.Id, guildInfo);
             NewGuilds.Add(guildInfo);
@@ -148,7 +167,14 @@ namespace TicketBot
 
         #region ChildChannel
 
-        
+        public void HandleChannelDeletion(SocketGuildChannel channel)
+        {
+            var child = guilds.Values.SelectMany(x => x.Tickets.Values.SelectMany(v => v.ActiveChildChannels.Values)).FirstOrDefault(g => g.ChannelId == channel.Id);
+            if(child != null)
+            {
+                child.ForceDelete(DiscordClient);
+            }
+        }
 
         #endregion
 
@@ -173,6 +199,25 @@ namespace TicketBot
             message.Result.AddReactionAsync(TicketEmote);
 
             guildInfo.CreateSetupMessage(message.Result.Id, ticket.Id, channel.Id);
+        }
+
+        public void HandleMessageDeletion(ulong MessageId, ulong GuildId)
+        {
+            var guild = GetGuildInfo(GuildId);
+            if(guild != null)
+            {
+                SetupMessage setupMessage;
+                guild.SetupMessages.TryGetValue(MessageId, out setupMessage);
+
+                if(setupMessage != null)
+                {
+                    Ticket ticket;
+                    guild.Tickets.TryGetValue(setupMessage.TicketId, out ticket);
+
+                    if (ticket != null)
+                        ticket.Delete(DiscordClient);
+                }
+            }
         }
 
         #endregion

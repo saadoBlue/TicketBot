@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace TicketBot.Guild
+namespace TicketBot.Core.Enums
 {
     public enum LangEnum
     {

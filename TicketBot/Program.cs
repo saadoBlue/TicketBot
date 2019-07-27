@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using Discord;
 using System.Linq;
 using System.IO;
+using TicketBot.Core.Enums;
+using TicketBot.Managers;
 
 namespace TicketBot
 {
@@ -16,8 +18,8 @@ namespace TicketBot
         public async Task MainAsync()
         {
             await Task.Factory.StartNew(InitializeBot);
-            guildManager = new GuildManager(client);
-            guildManager.Initialize();
+            mainManager = new MainManager(client);
+            mainManager.Initialize();
             if (!Directory.Exists("./Transcripts")) Directory.CreateDirectory("./Transcripts");
             await Task.Delay(-1);
         }
@@ -25,7 +27,7 @@ namespace TicketBot
         #region Propreties
         private static DiscordSocketClient client;
         public const string Token = "NTg2MzA1MTMyODY2NTY4MjMx.XPmGHQ.lFWVSCpZjT7x2HFDb8bZT5rXHJ8";
-        public static GuildManager guildManager;
+        public static MainManager mainManager;
         #endregion
 
         #region Functions
@@ -47,7 +49,7 @@ namespace TicketBot
             if (channel != null)
             {
                 var messageId = arg1.Id;
-                guildManager.HandleMessageDeletion(messageId, channel.Guild.Id);
+                mainManager.HandleMessageDeletion(messageId, channel.Guild.Id);
             }
             return Task.CompletedTask;
         }
@@ -56,7 +58,7 @@ namespace TicketBot
         {
             var channel = arg as SocketGuildChannel;
             if (channel != null)
-                guildManager.HandleChannelDeletion(channel);
+                mainManager.HandleChannelDeletion(channel);
 
             return Task.CompletedTask;
         }
@@ -116,7 +118,7 @@ namespace TicketBot
                     return Task.CompletedTask;
 
                 var mentionnedChannel = message.MentionedChannels.FirstOrDefault();
-                guildManager.SetupMessage(ticketName, Message, guild, mentionnedChannel as SocketTextChannel);
+                mainManager.SetupMessage(ticketName, Message, guild, mentionnedChannel as SocketTextChannel);
 
                 channel.SendMessageAsync($"Ticket {ticketName} Created.");
             }
@@ -124,40 +126,40 @@ namespace TicketBot
             else if(message.Content.ToLower().StartsWith("$roles add "))
             {
                 var mentionnedRoles = message.MentionedRoles;
-                if (mentionnedRoles != null && mentionnedRoles.Any()) guildManager.AddModerationCommand(guild, mentionnedRoles.Where(x => !x.IsEveryone).Select(x => x.Id).ToArray());
+                if (mentionnedRoles != null && mentionnedRoles.Any()) GuildManager.AddModerationCommand(guild, mentionnedRoles.Where(x => !x.IsEveryone).Select(x => x.Id).ToArray());
                 channel.SendMessageAsync($"Roles Added.");
             }
 
             else if (message.Content.ToLower().StartsWith("$roles remove "))
             {
                 var mentionnedRoles = message.MentionedRoles;
-                if (mentionnedRoles != null && mentionnedRoles.Any()) guildManager.RemoveModerationCommand(guild, mentionnedRoles.Where(x => !x.IsEveryone).Select(x => x.Id).ToArray());
+                if (mentionnedRoles != null && mentionnedRoles.Any()) GuildManager.RemoveModerationCommand(guild, mentionnedRoles.Where(x => !x.IsEveryone).Select(x => x.Id).ToArray());
                 channel.SendMessageAsync($"Roles Removed.");
             }
 
             else if (message.Content.ToLower().StartsWith("$lang fr") || message.Content.ToLower().StartsWith("$lang french"))
             {
-                guildManager.LangChangeCommand(guild, Guild.LangEnum.Frensh);
+                GuildManager.LangChangeCommand(guild, LangEnum.Frensh);
                 channel.SendMessageAsync($"Langage changé en Français.");
             }
 
             else if (message.Content.ToLower().StartsWith("$lang en") || message.Content.ToLower().StartsWith("$lang english"))
             {
-                guildManager.LangChangeCommand(guild, Guild.LangEnum.English);
+                GuildManager.LangChangeCommand(guild, LangEnum.English);
                 channel.SendMessageAsync($"Language changed to English.");
             }
 
             else if(message.Content.StartsWith("$icon "))
             {
                 string IconUrl = message.Content.Replace("$icon ", "");
-                guildManager.IconChangeCommand(guild, IconUrl);
+                GuildManager.IconChangeCommand(guild, IconUrl);
                 channel.SendMessageAsync($"Icon changed to {IconUrl}.");
             }
 
             else if (message.Content.StartsWith("$name "))
             {
                 string name = message.Content.Replace("$name ", "");
-                guildManager.NameChangeCommand(guild, name);
+                GuildManager.NameChangeCommand(guild, name);
                 channel.SendMessageAsync($"Name changed to {name}.");
             }
 
@@ -169,7 +171,7 @@ namespace TicketBot
             var User = reaction.User.Value as SocketGuildUser;
             var Channel = channel as SocketGuildChannel;
             if(User != null && Channel != null)
-                guildManager.HandleReaction(Channel.Guild, User, reaction);
+                mainManager.HandleReaction(Channel.Guild, User, reaction);
 
             return Task.CompletedTask;
         }

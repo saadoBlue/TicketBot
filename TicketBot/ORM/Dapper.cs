@@ -1,11 +1,9 @@
 ﻿using Dapper;
 using MySql.Data.MySqlClient;
-using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Linq;
-using System.Text;
-using TicketBot.Guild.GuildClasses;
+using TicketBot.Guild;
+using TicketBot.Maps;
 
 namespace TicketBot.ORM
 {
@@ -21,22 +19,22 @@ namespace TicketBot.ORM
             Connection.Open();
         }
 
-        public List<GuildInfo> GetGuildInfos() => Connection.Query<GuildDatabase>("SELECT * FROM guilds").Select(x => Program.guildManager.SwitchGuildToInfo(x)).ToList();
+        public List<GuildEngine> GetGuildEngines() => Connection.Query<GuildMap>("SELECT * FROM guilds").Select(x => Managers.GuildManager.UnMapGuild(x)).ToList();
 
 
-        public void Save(GuildDatabase database)
+        public void Save(GuildMap database)
         {
             var query = GetUpdateQuery(database);
             query.ExecuteNonQuery();
         }
 
-        public void Insert(GuildDatabase database)
+        public void Insert(GuildMap database)
         {
             var query = GetInsertQuery(database);
             query.ExecuteNonQuery();
         }
 
-        public MySqlCommand GetUpdateQuery(GuildDatabase database)
+        public MySqlCommand GetUpdateQuery(GuildMap database)
         {
             var command = new MySqlCommand($"UPDATE guilds SET Name = '{database.Name}', Lang = '{(int)database.Lang}', IconUrl = '{database.IconUrl}', PermittedRolesCSV = '{database.PermittedRolesCSV}', TicketsBin = @tbin, SetupMessagesBin = @smbin where Id = {database.Id};", Connection);
             command.Parameters.Add("@tbin", MySqlDbType.LongBlob).Value = database.TicketsBin;
@@ -44,7 +42,7 @@ namespace TicketBot.ORM
             return command;
         }
 
-        public MySqlCommand GetInsertQuery(GuildDatabase database)
+        public MySqlCommand GetInsertQuery(GuildMap database)
         {
             var command = new MySqlCommand($"INSERT INTO guilds(Id, Name, Lang, IconUrl, PermittedRolesCSV, TicketsBin, SetupMessagesBin) VALUES({database.Id},'{database.Name}',{(int)database.Lang},'{database.IconUrl}','{database.PermittedRolesCSV}',@tbin,@smbin);", Connection);
             command.Parameters.Add("@tbin", MySqlDbType.LongBlob).Value = database.TicketsBin;

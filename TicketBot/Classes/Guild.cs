@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TicketBot.Classes.AdditionalData;
 using TicketBot.Core.Enums;
 using TicketBot.Maps;
 using TicketBot.Maps.Messages;
@@ -14,6 +15,7 @@ namespace TicketBot.Guild
             IconUrl = @"https://cdn.discordapp.com/avatars/557628352828014614/04cdd55608f6f9942c9ab3bbcab3932c.png?size=512";
             Lang = LangEnum.English;
             SetupMessages = new Dictionary<ulong, SetupMessage>();
+            RolesMessagesData = new Dictionary<ulong, RolesMessageData>();
             PermittedRoles = new List<ulong>() { 666 };
         }
 
@@ -46,6 +48,12 @@ namespace TicketBot.Guild
         }
 
         public Dictionary<ulong, SetupMessage> SetupMessages
+        {
+            get;
+            set;
+        }
+
+        public Dictionary<ulong, RolesMessageData> RolesMessagesData
         {
             get;
             set;

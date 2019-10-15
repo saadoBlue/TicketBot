@@ -43,5 +43,11 @@ namespace TicketBot.Maps
             get;
             set;
         }
+
+        public byte[] RolesMessagesBin
+        {
+            get;
+            set;
+        }
     }
 }

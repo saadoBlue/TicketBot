@@ -328,12 +328,12 @@ namespace TicketBot.Managers
             if (channel == null)
                 return;
 
-            //Transcript Code to do
+           // var g = channel.GetMessagesAsync(100);
+            
 
             SendTranscriptMessage(client, channel, child);
             SendClosedMessage(client, channel, child);
-
-            Task.Factory.StartNewDelayed(23000, () => ScheduledChildDelete(channel));
+            Task.Factory.StartNewDelayed(5000, () => ScheduledChildDelete(channel));
         }
 
         public static void ScheduledChildDelete(SocketTextChannel channel) => channel.DeleteAsync();

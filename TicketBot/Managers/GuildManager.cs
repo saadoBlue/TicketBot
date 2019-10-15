@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using TicketBot.Classes.AdditionalData;
 using TicketBot.Core.Enums;
 using TicketBot.Core.Extensions;
 using TicketBot.Guild;
@@ -63,12 +64,14 @@ namespace TicketBot.Managers
         {
             var tickets = FormatterExtensions.ToObject<List<Ticket>>(database.TicketsBin);
             var smessages = FormatterExtensions.ToObject<List<SetupMessage>>(database.SetupMessagesBin);
+            var sroles = FormatterExtensions.ToObject<List<RolesMessageData>>(database.RolesMessagesBin);
             GuildEngine info = new GuildEngine(database.Id, database.Name)
             {
                 Lang = database.Lang,
                 IconUrl = database.IconUrl,
                 Tickets = tickets.ToDictionary(x => x.Id),
                 SetupMessages = smessages.ToDictionary(x => x.MessageId),
+                RolesMessagesData = sroles.ToDictionary(x => x.MessageId),
                 PermittedRoles = FormatterExtensions.FromCSV<ulong>(database.PermittedRolesCSV, ";").ToList()
             };
             return info;
@@ -84,6 +87,7 @@ namespace TicketBot.Managers
                 IconUrl = guild.IconUrl,
                 TicketsBin = FormatterExtensions.ToBinary(guild.Tickets.Values.ToList()),
                 SetupMessagesBin = FormatterExtensions.ToBinary(guild.SetupMessages.Values.ToList()),
+                RolesMessagesBin = FormatterExtensions.ToBinary(guild.RolesMessagesData.Values.ToList()),
                 PermittedRolesCSV = guild.PermittedRoles.ToCSV(";")
             };
 
@@ -94,16 +98,16 @@ namespace TicketBot.Managers
 
         #region SetupMessages
 
-        public static SetupMessage CreateSetupMessage(GuildEngine guild, ulong MessageId, ulong TicketId, ulong ChannelId)
+        public static SetupMessage CreateSetupMessage(GuildEngine guild, ulong messageId, ulong ticketId, ulong channelId)
         {
-            if (guild.SetupMessages.ContainsKey(MessageId))
+            if (guild.SetupMessages.ContainsKey(messageId))
             {
                 SetupMessage m_message;
-                guild.SetupMessages.TryGetValue(MessageId, out m_message);
+                guild.SetupMessages.TryGetValue(messageId, out m_message);
                 return m_message;
             }
-            SetupMessage message = new SetupMessage(MessageId, TicketId, ChannelId);
-            guild.SetupMessages.Add(MessageId, message);
+            SetupMessage message = new SetupMessage { MessageId = messageId, TicketId = ticketId, ChannelId = channelId};
+            guild.SetupMessages.Add(messageId, message);
             return message;
         }
 

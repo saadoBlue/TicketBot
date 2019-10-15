@@ -7,12 +7,6 @@ namespace TicketBot.Maps.Messages
     [Serializable]
     public class SetupMessage
     {
-        public SetupMessage(ulong messageId, ulong ticketId, ulong channelId)
-        {
-            MessageId = messageId;
-            TicketId = ticketId;
-            ChannelId = channelId;
-        }
 
         public ulong MessageId
         {

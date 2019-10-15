@@ -26,7 +26,7 @@ namespace TicketBot
 
         #region Propreties
         private static DiscordSocketClient client;
-        public const string Token = "NTg2MzA1MTMyODY2NTY4MjMx.XPmGHQ.lFWVSCpZjT7x2HFDb8bZT5rXHJ8";
+        public const string Token = "";
         public static MainManager mainManager;
         #endregion
 
